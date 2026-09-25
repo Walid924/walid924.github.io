@@ -1,0 +1,130 @@
+/* =============================================================================
+   Portfolio - surcharge du thème Zensical
+   Direction : sobre et lisible. Fond blanc, texte presque noir, un seul bleu
+   pour les liens, beaucoup d'espace, police du système.
+   ============================================================================= */
+
+/* ---- Couleurs et police ---------------------------------------------------- */
+
+:root {
+  --md-text-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --md-code-font: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+[data-md-color-scheme="default"] {
+  --md-default-fg-color: #1d1d1f;
+  --md-default-fg-color--light: #6e6e73;
+  --md-typeset-a-color: #0066cc;
+  --md-accent-fg-color: #0066cc;
+  --surface: #f5f5f7;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-typeset-a-color: #2997ff;
+  --md-accent-fg-color: #2997ff;
+  --surface: rgba(255, 255, 255, 0.06);
+}
+
+/* ---- Texte ----------------------------------------------------------------- */
+
+.md-typeset {
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--md-default-fg-color);
+}
+
+.md-typeset h2 {
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-top: 2.4em;
+}
+
+.md-typeset h3 {
+  font-weight: 600;
+}
+
+/* ---- Page d'accueil -------------------------------------------------------- */
+
+.hero {
+  padding: 4rem 0 3rem;
+  text-align: center;
+}
+
+.md-typeset .hero h1 {
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  margin: 0 0 0.4em;
+}
+
+.hero .subtitle {
+  max-width: 32rem;
+  margin: 0 auto 2rem;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Rubriques : trois blocs gris clair, sans ombre ni bordure */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 3rem;
+}
+
+.md-typeset .tile {
+  padding: 1.6rem;
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.md-typeset .tile h3 {
+  margin-top: 0;
+}
+
+.md-typeset .tile p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---- Boutons --------------------------------------------------------------- */
+
+.md-typeset .md-button {
+  border-radius: 980px;
+  padding: 0.55em 1.4em;
+  font-weight: 500;
+  border-width: 1px;
+}
+
+.md-typeset .md-button--primary {
+  background-color: var(--md-typeset-a-color);
+  border-color: var(--md-typeset-a-color);
+  color: #fff;
+}
+
+/* ---- Tableaux et encadrés -------------------------------------------------- */
+
+.md-typeset table:not([class]) {
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 12px;
+  font-size: 0.8rem;
+}
+
+/* ---- Accessibilité --------------------------------------------------------- */
+
+.md-typeset a:focus-visible,
+.md-typeset .md-button:focus-visible {
+  outline: 2px solid var(--md-typeset-a-color);
+  outline-offset: 2px;
+}

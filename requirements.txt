@@ -1,0 +1,4 @@
+# Version de Zensical utilisée en local et par GitHub Actions.
+# La borne haute évite de passer automatiquement à la 0.1 (changements annoncés) :
+# on la montera volontairement après avoir testé en local.
+zensical>=0.0.65,<0.1
