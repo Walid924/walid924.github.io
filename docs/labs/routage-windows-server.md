@@ -3,8 +3,7 @@
 <!--
   À COMPLÉTER AVANT PUBLICATION
   - Date et durée réelles
-  - Tes captures d'écran (lignes ![...] commentées ci-dessous)
-  - Tes résultats réels (adresses MAC, sorties de commandes)
+  - Les captures restantes (lignes ![...] commentées ci-dessous)
   - Les sections « Problèmes rencontrés » et « Bilan personnel »
   Puis supprime ce commentaire.
 -->
@@ -13,7 +12,7 @@
 |---|---|
 | Date | Mois année |
 | Durée | x heures |
-| Environnement | Machines virtuelles (VMware ou VirtualBox) |
+| Environnement | Machines virtuelles VMware, configuration 100 % par interfaces graphiques |
 
 ## Contexte
 
@@ -30,129 +29,129 @@ Deux réseaux distincts, 10.0.0.0 et 11.0.0.0, doivent pouvoir communiquer. Aucu
 
 ```mermaid
 flowchart LR
-    A["CLIENT-A<br>Windows 10<br>10.0.0.10/8"] --- LA(("Réseau A<br>10.0.0.0/8"))
+    A["CLIENT-A<br>Windows 10<br>10.0.0.10/8"] --- LA(("Segment LAN<br>10.0.0.0"))
     LA --- R["SRV-ROUTEUR<br>Windows Server 2022<br>10.0.0.1 / 11.0.0.1"]
-    R --- LB(("Réseau B<br>11.0.0.0/8"))
+    R --- LB(("Segment LAN<br>11.0.0.0"))
     LB --- B["CLIENT-B<br>Windows 10<br>11.0.0.10/8"]
 ```
 
 ### Plan d'adressage
 
-| Machine | Système | Interface | Adresse IP | Masque | Passerelle |
-|---|---|---|---|---|---|
-| CLIENT-A | Windows 10 | Ethernet | 10.0.0.10 | 255.0.0.0 | 10.0.0.1 |
-| SRV-ROUTEUR | Windows Server 2022 | LAN-A | 10.0.0.1 | 255.0.0.0 | Aucune |
-| SRV-ROUTEUR | Windows Server 2022 | LAN-B | 11.0.0.1 | 255.0.0.0 | Aucune |
-| CLIENT-B | Windows 10 | Ethernet | 11.0.0.10 | 255.0.0.0 | 11.0.0.1 |
+| Machine | Système | Carte réseau | Segment LAN | Adresse IP | Masque | Passerelle |
+|---|---|---|---|---|---|---|
+| CLIENT-A | Windows 10 | Carte 1 | 10.0.0.0 | 10.0.0.10 | 255.0.0.0 (/8) | 10.0.0.1 |
+| SRV-ROUTEUR | Windows Server 2022 | Carte 1 | 10.0.0.0 | 10.0.0.1 | 255.0.0.0 (/8) | Aucune |
+| SRV-ROUTEUR | Windows Server 2022 | Carte 2 | 11.0.0.0 | 11.0.0.1 | 255.0.0.0 (/8) | Aucune |
+| CLIENT-B | Windows 10 | Carte 1 | 11.0.0.0 | 11.0.0.10 | 255.0.0.0 (/8) | 11.0.0.1 |
 
 Chaque client a pour passerelle l'adresse du routeur **dans son propre réseau**. C'est vers elle qu'il envoie tout paquet destiné à un autre réseau.
 
-### Réseau virtuel
+## Réalisation
 
-Dans l'hyperviseur, chaque réseau est un segment isolé :
+### 1. Création des réseaux dans VMware
 
-- CLIENT-A et la carte LAN-A du serveur sont sur le segment « Réseau A »
-- CLIENT-B et la carte LAN-B du serveur sont sur le segment « Réseau B »
+Chaque réseau est un **segment LAN** VMware : un réseau virtuel isolé, qui ne relie que les machines qu'on y branche. Dans les paramètres de chaque carte réseau virtuelle, l'option « Segment LAN » est choisie avec le segment correspondant.
+
+| Segment du réseau A | Segment du réseau B |
+|---|---|
+| ![Segment LAN 10.0.0.0](../assets/img/routage-01-segment-reseau-a.png) | ![Segment LAN 11.0.0.0](../assets/img/routage-02-segment-reseau-b.png) |
+
+| Machine | Carte 1 | Carte 2 |
+|---|---|---|
+| CLIENT-A | Segment 10.0.0.0 | |
+| SRV-ROUTEUR | Segment 10.0.0.0 | Segment 11.0.0.0 |
+| CLIENT-B | Segment 11.0.0.0 | |
 
 Les deux clients ne partagent aucun segment : ils ne peuvent communiquer qu'en passant par le serveur.
 
-## Réalisation
+### 2. Configuration IP des clients
 
-### 1. Configuration des adresses IP
+Sur chaque client Windows 10 : **Paramètres > Réseau et Internet > Ethernet**, puis **Modifier** dans « Attribution d'adresse IP ». Le mode passe de « Automatique (DHCP) » à **Manuel**, et IPv4 est activé.
 
-Sur le serveur, les deux cartes sont d'abord renommées pour savoir à quel réseau chacune appartient, puis adressées :
+![Fenêtre Modifier les paramètres IP de Windows 10](../assets/img/routage-03-parametres-ip-client.png){ width="300" }
 
-```powershell
-Rename-NetAdapter -Name "Ethernet0" -NewName "LAN-A"
-Rename-NetAdapter -Name "Ethernet1" -NewName "LAN-B"
+| Champ | CLIENT-A | CLIENT-B |
+|---|---|---|
+| Adresse IP | 10.0.0.10 | 11.0.0.10 |
+| Longueur du préfixe de sous-réseau | 8 | 8 |
+| Passerelle | 10.0.0.1 | 11.0.0.1 |
+| DNS préféré | Vide (inutile pour ce lab) | Vide |
 
-New-NetIPAddress -InterfaceAlias "LAN-A" -IPAddress 10.0.0.1 -PrefixLength 8
-New-NetIPAddress -InterfaceAlias "LAN-B" -IPAddress 11.0.0.1 -PrefixLength 8
-```
+La **longueur du préfixe** remplace le masque : 8 signifie que les 8 premiers bits identifient le réseau, soit un masque 255.0.0.0.
 
-Sur les clients, l'adresse, le masque et la passerelle sont saisis dans les propriétés IPv4 de la carte réseau (voir le plan d'adressage).
+### 3. Configuration IP du serveur
 
-<!-- ![Configuration IP de CLIENT-A](../assets/img/routage-01-ip-client-a.png) -->
+Sur le serveur, dans **Panneau de configuration > Centre Réseau et partage > Modifier les paramètres de la carte**, chaque carte est configurée via **Propriétés > Protocole Internet version 4 (TCP/IPv4)**.
 
-Vérification sur chaque machine :
+| Champ | Carte 1 (réseau A) | Carte 2 (réseau B) |
+|---|---|---|
+| Adresse IP | 10.0.0.1 | 11.0.0.1 |
+| Masque de sous-réseau | 255.0.0.0 | 255.0.0.0 |
+| Passerelle par défaut | Vide | Vide |
 
-```
-ipconfig
-```
+Le serveur **est** la passerelle : il n'en a pas besoin pour ces deux réseaux, qu'il touche directement.
 
-### 2. Autorisation du ping
+<!-- ![Propriétés IPv4 de la carte 1 du serveur](../assets/img/routage-04-ip-serveur.png) -->
 
-Par défaut, le pare-feu de Windows bloque les demandes d'écho ICMP entrantes. Sur les deux clients, la règle prévue à cet effet est activée :
+### 4. Installation du rôle Routage
 
-```powershell
-Enable-NetFirewallRule -Name "FPS-ICMP4-ERQ-In"
-```
+Dans le **Gestionnaire de serveur** :
 
-### 3. Activation du routage sur le serveur
+1. **Gérer > Ajouter des rôles et fonctionnalités**
+2. Type d'installation : **Installation basée sur un rôle ou une fonctionnalité**
+3. Rôle : **Accès à distance**
+4. Services de rôle : **Routage** (l'assistant ajoute automatiquement « DirectAccess et VPN (RAS) », nécessaire au fonctionnement)
+5. **Installer**
 
-Le routage est fourni par le rôle **Accès à distance**, service de rôle **Routage** :
+<!-- ![Sélection du service de rôle Routage](../assets/img/routage-05-role-routage.png) -->
 
-```powershell
-Install-WindowsFeature Routing -IncludeManagementTools
-```
+### 5. Activation du routage
 
-Il est ensuite activé depuis la console « Routage et accès distant » : clic droit sur le serveur, « Configurer et activer le routage et l'accès distant », « Configuration personnalisée », puis « Routage LAN ». Le service est démarré à la fin de l'assistant.
+Dans le Gestionnaire de serveur : **Outils > Routage et accès distant**.
 
-<!-- ![Assistant Routage et accès distant](../assets/img/routage-02-rras-routage-lan.png) -->
+1. Clic droit sur le serveur, puis **Configurer et activer le routage et l'accès distant**
+2. Choix de **Configuration personnalisée**
+3. Case **Routage LAN** cochée
+4. **Terminer**, puis **Démarrer le service**
 
-Vérification que le serveur transfère bien les paquets entre ses interfaces :
+Le serveur passe au vert dans la console : le routage est actif.
 
-```powershell
-Get-NetIPInterface -AddressFamily IPv4 | Select-Object InterfaceAlias, Forwarding
-```
-
-Les interfaces LAN-A et LAN-B doivent afficher `Enabled`.
+<!-- ![Assistant : Routage LAN](../assets/img/routage-06-rras-routage-lan.png) -->
 
 !!! info "Faut-il un protocole de routage ?"
     Les deux réseaux sont directement connectés au serveur : il les connaît dès que ses cartes sont adressées, sans protocole de routage ni route statique. Un protocole dynamique (RIP, OSPF) ou des routes statiques deviennent nécessaires dès qu'un réseau se trouve derrière un autre routeur.
 
-### 4. Table de routage
+### 6. Autorisation du ping sur les clients
 
-Sur le serveur :
+<!-- Supprime cette étape si tu n'as pas eu besoin de la faire. -->
 
-```
-route print -4
-```
+Par défaut, le pare-feu de Windows 10 bloque les demandes de ping entrantes. Sur chaque client : **Pare-feu Windows Defender avec fonctions avancées de sécurité > Règles de trafic entrant**, puis clic droit sur **Partage de fichiers et d'imprimantes (Demande d'écho - Trafic entrant ICMPv4)** et **Activer la règle**.
 
-<!-- ![Table de routage du serveur](../assets/img/routage-03-route-print.png) -->
+## Table de routage
+
+Dans la console Routage et accès distant : **IPv4 > Général**, clic droit, puis **Afficher la table de routage IP**.
+
+<!-- ![Table de routage IP du serveur](../assets/img/routage-07-table-routage.png) -->
 
 Les lignes importantes :
 
-| Destination | Masque | Passerelle | Interface | Signification |
+| Destination | Masque réseau | Interface | Protocole | Signification |
 |---|---|---|---|---|
-| 10.0.0.0 | 255.0.0.0 | On-link | 10.0.0.1 | Réseau A, directement connecté à LAN-A |
-| 11.0.0.0 | 255.0.0.0 | On-link | 11.0.0.1 | Réseau B, directement connecté à LAN-B |
+| 10.0.0.0 | 255.0.0.0 | Carte 1 | Local | Réseau A, directement connecté |
+| 11.0.0.0 | 255.0.0.0 | Carte 2 | Local | Réseau B, directement connecté |
 
-« On-link » signifie que la destination est joignable directement sur l'interface, sans passer par un autre routeur.
+« Local » signifie que le serveur a appris la route tout seul, parce que l'un de ses réseaux est branché sur cette carte. Quand un paquet arrive pour 11.0.0.10, le serveur consulte cette table, trouve que 11.0.0.0/8 est derrière la carte 2, et l'envoie par là.
 
-Sur CLIENT-A, la route par défaut `0.0.0.0` pointe vers la passerelle 10.0.0.1 : tout ce qui n'est pas dans 10.0.0.0/8 est envoyé au serveur.
-
-### 5. Test de connectivité
-
-Depuis CLIENT-A :
-
-```
-ping 11.0.0.10
-tracert 11.0.0.10
-```
-
-Le `tracert` montre le passage par le routeur : un premier saut vers 10.0.0.1, puis l'arrivée sur 11.0.0.10.
-
-<!-- ![Ping et tracert de A vers B](../assets/img/routage-04-ping-tracert.png) -->
+Côté clients, c'est la passerelle qui fait le travail : tout paquet qui n'est pas destiné à leur propre réseau est envoyé au serveur.
 
 ## Observation du protocole ARP
 
 ### Méthode
 
-1. Vider le cache ARP de CLIENT-A et du serveur (invite de commandes en administrateur) : `arp -d *`
-2. Lancer une capture Wireshark sur les deux cartes du serveur (LAN-A et LAN-B), avec le filtre `arp or icmp`
-3. Depuis CLIENT-A : `ping -n 1 11.0.0.10`
-4. Afficher le cache ARP de CLIENT-A : `arp -a`
+1. Sur le serveur, lancer **Wireshark** sur les deux cartes réseau, avec le filtre d'affichage `arp or icmp`
+2. Sur CLIENT-A, désactiver puis réactiver la carte réseau, pour vider les correspondances IP/MAC déjà connues
+3. Lancer un ping de CLIENT-A vers CLIENT-B (11.0.0.10)
+4. Observer les trames capturées de chaque côté du routeur
 
 ### Ce qui se passe
 
@@ -162,17 +161,17 @@ sequenceDiagram
     participant R as SRV-ROUTEUR
     participant B as CLIENT-B 11.0.0.10
     A->>R: ARP Request (broadcast) - qui a 10.0.0.1 ?
-    R-->>A: ARP Reply - 10.0.0.1 est à MAC de LAN-A
+    R-->>A: ARP Reply - 10.0.0.1 est à la MAC de la carte 1
     A->>R: ICMP Echo Request vers 11.0.0.10
     R->>B: ARP Request (broadcast) - qui a 11.0.0.10 ?
-    B-->>R: ARP Reply - 11.0.0.10 est à MAC de CLIENT-B
+    B-->>R: ARP Reply - 11.0.0.10 est à la MAC de CLIENT-B
     R->>B: ICMP Echo Request (TTL diminué de 1)
     B-->>R: ICMP Echo Reply
     R-->>A: ICMP Echo Reply
 ```
 
-<!-- ![Capture Wireshark côté LAN-A](../assets/img/routage-05-wireshark-lan-a.png) -->
-<!-- ![Capture Wireshark côté LAN-B](../assets/img/routage-06-wireshark-lan-b.png) -->
+<!-- ![Capture Wireshark côté réseau A](../assets/img/routage-08-wireshark-reseau-a.png) -->
+<!-- ![Capture Wireshark côté réseau B](../assets/img/routage-09-wireshark-reseau-b.png) -->
 
 CLIENT-A voit que 11.0.0.10 n'est pas dans son réseau. Il ne cherche donc pas l'adresse MAC de CLIENT-B, mais celle de sa **passerelle**. Le routeur fait ensuite sa propre requête ARP, côté réseau B, pour trouver CLIENT-B.
 
@@ -180,29 +179,24 @@ CLIENT-A voit que 11.0.0.10 n'est pas dans son réseau. Il ne cherche donc pas l
 |---|---|---|
 | IP source | 10.0.0.10 | 10.0.0.10 |
 | IP destination | 11.0.0.10 | 11.0.0.10 |
-| MAC source | CLIENT-A | LAN-B du serveur |
-| MAC destination | LAN-A du serveur | CLIENT-B |
+| MAC source | CLIENT-A | Carte 2 du serveur |
+| MAC destination | Carte 1 du serveur | CLIENT-B |
 
 Les adresses IP restent les mêmes de bout en bout, alors que les adresses MAC changent à chaque réseau traversé. C'est le cœur du routage : l'IP désigne la destination finale, la MAC désigne seulement le prochain équipement.
 
-Le cache ARP de CLIENT-A le confirme : après le ping, il contient l'adresse MAC de 10.0.0.1, mais **pas** celle de 11.0.0.10.
-
-<!-- ![Cache ARP de CLIENT-A](../assets/img/routage-07-arp-a.png) -->
-
 ## Tests et validation
 
-- [ ] `ping 11.0.0.10` depuis CLIENT-A : réponses reçues
-- [ ] `ping 10.0.0.10` depuis CLIENT-B : réponses reçues
-- [ ] `tracert` : passage par la passerelle visible
-- [ ] Table de routage du serveur : les deux réseaux en « On-link »
-- [ ] Cache ARP de CLIENT-A : MAC de la passerelle uniquement
+- [ ] Ping de CLIENT-A vers CLIENT-B : réponses reçues
+- [ ] Ping de CLIENT-B vers CLIENT-A : réponses reçues
+- [ ] Table de routage du serveur : les deux réseaux présents en « Local »
+- [ ] Wireshark : ARP vers la passerelle côté A, ARP vers CLIENT-B côté B
 
 ## Problèmes rencontrés
 
 <!--
   Décris un vrai problème : le symptôme, ton diagnostic, la solution.
   Exemples fréquents sur ce TP : ping bloqué par le pare-feu, passerelle oubliée,
-  carte réseau branchée sur le mauvais segment, service de routage non démarré.
+  carte réseau branchée sur le mauvais segment LAN, service de routage non démarré.
 -->
 
 Symptôme, diagnostic, solution.
@@ -224,9 +218,8 @@ Symptôme, diagnostic, solution.
   - Utiliser des plages privées (le réseau 11.0.0.0 est une plage publique, réservée sur Internet)
   - Utiliser des masques plus adaptés, par exemple en /24
   - Ajouter un second routeur pour mettre en place du routage statique ou RIP
-  - Automatiser la configuration avec un script PowerShell
 -->
 
 ## Compétences mobilisées
 
-Adressage IPv4, routage, Windows Server 2022, rôle Routage et accès distant, ARP, ICMP, Wireshark, PowerShell, virtualisation.
+Adressage IPv4, routage, Windows Server 2022, rôle Routage et accès distant, ARP, ICMP, Wireshark, VMware.
