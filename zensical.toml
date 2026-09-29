@@ -1,0 +1,96 @@
+# =============================================================================
+# Configuration du portfolio - Zensical
+# Documentation : https://zensical.org/docs/setup/basics/
+# =============================================================================
+
+[project]
+site_name = "Walid Bekkouche"
+site_url = "https://walid924.github.io/"
+site_description = "Labs, veille technologique et certifications en systèmes et réseaux"
+site_author = "Walid Bekkouche"
+copyright = "Walid Bekkouche, 2026"
+repo_url = "https://github.com/Walid924/walid924.github.io"
+repo_name = "Walid924/walid924.github.io"
+
+# Feuille de style personnelle (chemin relatif au dossier docs/)
+extra_css = ["assets/stylesheets/extra.css"]
+
+# Menu du site. Chaque nouvelle page doit être ajoutée ici.
+# La première page d'une rubrique (index.md) sert de page d'accueil de la rubrique.
+nav = [
+  { "Accueil" = "index.md" },
+  { "Labs" = [
+    "labs/index.md",
+    "labs/routage-windows-server.md",
+  ] },
+  { "Veille" = [
+    "veille/index.md",
+    "veille/2026-10-exemple.md",
+  ] },
+  { "Certifications" = "certifications.md" },
+  { "À propos" = "a-propos.md" },
+]
+
+# -----------------------------------------------------------------------------
+# Thème
+# -----------------------------------------------------------------------------
+[project.theme]
+language = "fr"
+
+# Pas de police Google : on utilise la police système (voir extra.css)
+font = false
+
+features = [
+  "content.code.copy",         # bouton "copier" sur les blocs de code
+  "navigation.tabs",           # rubriques en onglets dans l'en-tête
+  "navigation.indexes",        # index.md = page d'accueil de la rubrique
+  "navigation.instant",        # navigation sans rechargement complet
+  "navigation.top",            # bouton "retour en haut"
+  "navigation.footer",         # liens page précédente / suivante
+  "search.highlight",          # surligne les termes recherchés
+  "toc.follow",                # le sommaire suit la lecture
+]
+
+# Clair / sombre selon le réglage du système, avec un bouton pour basculer
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "white"
+accent = "blue"
+toggle.icon = "lucide/moon"
+toggle.name = "Passer en mode sombre"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "black"
+accent = "blue"
+toggle.icon = "lucide/sun"
+toggle.name = "Passer en mode clair"
+
+# Liens affichés en bas de page
+[[project.extra.social]]
+icon = "fontawesome/brands/linkedin"
+link = "https://www.linkedin.com/in/wbekkouche/"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/Walid924"
+
+# -----------------------------------------------------------------------------
+# Extensions Markdown (uniquement celles utilisées dans le site)
+# -----------------------------------------------------------------------------
+[project.markdown_extensions]
+admonition = {}                # encadrés : !!! note, !!! warning...
+attr_list = {}                 # classes sur les liens (boutons)
+md_in_html = {}                # Markdown dans les blocs HTML (page d'accueil)
+tables = {}
+toc.permalink = true
+pymdownx.details = {}          # encadrés repliables : ??? note
+pymdownx.highlight.anchor_linenums = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}             # touches clavier : ++ctrl+alt+del++
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tasklist.custom_checkbox = true

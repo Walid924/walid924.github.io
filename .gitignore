@@ -1,0 +1,10 @@
+# Environnement Python local
+.venv/
+
+# Fichiers générés par Zensical (reconstruits par GitHub Actions)
+site/
+.cache/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
